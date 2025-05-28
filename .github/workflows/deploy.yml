@@ -1,0 +1,27 @@
+name: OIDC AWS Deploy Test
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  id-token: write       # OIDC 토큰을 사용하기 위한 권한
+  contents: read        # 리포지토리의 코드 읽기 권한
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout source code
+      uses: actions/checkout@v4
+
+    - name: Configure AWS credentials using OIDC
+      uses: aws-actions/configure-aws-credentials@v2
+      with:
+        role-to-assume: arn:aws:iam::322356185578:role/gh-actions-oidc-role
+        aws-region: ap-northeast-2
+
+    - name: Test AWS CLI access
+      run: aws sts get-caller-identity
