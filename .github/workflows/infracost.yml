@@ -1,0 +1,43 @@
+name: Infracost
+
+on:
+  pull_request:
+    paths:
+      - '**.tf'
+      - '**.tfvars'
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  infracost:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v3
+
+      - name: Install Infracost
+        run: |
+          curl -sL https://github.com/infracost/infracost/releases/latest/download/infracost-linux-amd64.tar.gz | tar xz
+          sudo mv infracost /usr/local/bin
+
+      - name: Run Infracost breakdown
+        env:
+          INFRACOST_API_KEY: ${{ secrets.INFRACOST_API_KEY }}
+        run: |
+          infracost breakdown --path=. --format=json --out-file=infracost.json
+
+      - name: Post Infracost comment
+        env:
+          INFRACOST_API_KEY: ${{ secrets.INFRACOST_API_KEY }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          infracost comment github --path=infracost.json \
+            --repo=$GITHUB_REPOSITORY \
+            --pull-request=${{ github.event.pull_request.number }} \
+            --behavior=update
